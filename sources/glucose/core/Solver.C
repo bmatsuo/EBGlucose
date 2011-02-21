@@ -268,7 +268,7 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
 |  Effect:
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
-void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &nbl,int &mer)
+void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &nbl,int &mer, bool &out_isbac)
 {
     int pathC = 0;
     Lit p     = lit_Undef;
@@ -280,7 +280,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 
     bool out_isempowering = 0;  // Flag for finding 1-emp clauses.   BM
     int bac_btlevel = -1;
-    vec<Lit>& bac_learnt(); // Best possible 1-empowering bi-asserting clause.   BM
+    vec<Lit> bac_learnt; // Best possible 1-empowering bi-asserting clause.   BM
+    out_isbac = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
@@ -343,6 +344,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     if (bac_btlevel >= 0 && bac_btlevel <= out_btlevel - 2) {
         bac_learnt.copyTo(out_learnt);
         out_btlevel = bac_btlevel;
+        out_isbac = true;
     }
 
 	
@@ -754,6 +756,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
     int         backtrack_level;
     int         conflictsC = 0;
     vec<Lit>    learnt_clause;
+    bool        learnt_isbac;
     int nblevels=0,nbCC=0,merged=0;
     starts++;
     bool first = true;
@@ -769,7 +772,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
             first = false;
 
             learnt_clause.clear();
-            analyze(confl, learnt_clause, backtrack_level,nblevels,merged);
+            analyze(confl, learnt_clause, backtrack_level,nblevels,merged,learnt_isbac);
 
 
 	        conf4Stats++;
