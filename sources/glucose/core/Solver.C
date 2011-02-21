@@ -278,7 +278,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     int index   = trail.size() - 1;
     out_btlevel = 0;
 
-    bool out_isempowering = 0;  // Flag for finding 1-emp clauses.   BM
+    bool out_isempowering = false;  // Flag for finding 1-emp clauses.   BM
     int bac_btlevel = -1;
     vec<Lit> bac_learnt; // Best possible 1-empowering bi-asserting clause.   BM
     out_isbac = false;
@@ -303,9 +303,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 	      
                 varBumpActivity(var(q));
 
-                if (seen[var(q)] == 1)
-                    out_isempowering = 1;
-
                 seen[var(q)] = 1;
                 if (level[var(q)] >= decisionLevel()){
                     pathC++;
@@ -320,14 +317,10 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
                         out_btlevel = level[var(q)];
                 }
             }
-        }
-
-        // Check for the first BAC.   BM
-        if (pathC == 1 && out_isempowering && bac_btlevel == -1) {
-            // Like FUIP, the F1BAC is the best BAC (lowest btlevel).
-            bac_btlevel = out_btlevel;
-            out_learnt.copyTo(bac_learnt);
-            bac_learnt[0] = ~p;
+            else if (seen[var(q)] == 1) { // Check for a merge resolution.   BM
+                out_isempowering = true;
+                // printf("Found empowering clause.\n");
+            }
         }
 
         // Select next clause to look at:
@@ -337,15 +330,31 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         seen[var(p)] = 0;
         pathC--;
 
+        // Check for the first BAC.   BM
+        if (pathC == 1 && out_isempowering && bac_btlevel == -1) {
+            // Like FUIP, the F1BAC is the best BAC (lowest btlevel).
+            bac_btlevel = out_btlevel;
+            out_learnt.copyTo(bac_learnt);
+            int qi = index;
+            while (!seen[var(trail[qi--])]);
+            Lit q = trail[qi+1];
+            Lit t = bac_learnt[1];
+            bac_learnt[0] = ~q;
+            bac_learnt[1] = ~p;
+            bac_learnt.push(t);
+            //printf("Found F1BAC clause with btlevel %d\n", bac_btlevel);
+        }
+
     }while (pathC > 0);
     out_learnt[0] = ~p;
 
     // Learn the F1BAC if it is good enough.   BM
-    if (bac_btlevel >= 0 && bac_btlevel <= out_btlevel - 2) {
-        bac_learnt.copyTo(out_learnt);
-        out_btlevel = bac_btlevel;
-        out_isbac = true;
-    }
+    //if (bac_btlevel >= 0 && bac_btlevel <= out_btlevel - 2) {
+    //    printf("Learnt F1BAC clause with btlevel %d (FUIP %d)\n", bac_btlevel, out_btlevel);
+    //    bac_learnt.copyTo(out_learnt);
+    //    out_btlevel = bac_btlevel;
+    //    out_isbac = true;
+    //}
 
 	
     // Simplify conflict clause:
@@ -794,6 +803,16 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
 	            attachClause(*c);
 	            claBumpActivity(*c);
 	            uncheckedEnqueue(learnt_clause[0], c);
+                /*
+                * if (!learnt_isbac) { // Don't enqueue propagation for BAC clauses.  BM
+	            *     uncheckedEnqueue(learnt_clause[0], c);
+                * } 
+                * else {
+                *     assert(value(learnt_clause[0]) == l_Undef);
+                *     newDecisionLevel();
+                *     uncheckedEnqueue(~learnt_clause[0]);
+                * }
+                */
             }
 	        varDecayActivity();
 	        claDecayActivity();
