@@ -342,7 +342,14 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
             bac_learnt[0] = ~q;
             bac_learnt[1] = ~p;
             bac_learnt.push(t);
-            //printf("Found F1BAC clause with btlevel %d\n", bac_btlevel);
+            /*
+            * printf("Found F1BAC clause with btlevel %d: ", bac_btlevel);
+            * for (int baci = 0; baci < bac_learnt.size(); baci++) {
+            *     Lit b = bac_learnt[baci];
+            *     printf("[%d,%s%d,%d]", value(b) == l_True ? 1 : 0, sign(b) ? "" : "-", var(b), level[var(b)]);
+            * }
+            * printf("\n");
+            */
         }
 
     }while (pathC > 0);
@@ -802,11 +809,10 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
 	            if(c->size()==2) nbBin++;
 	            attachClause(*c);
 	            claBumpActivity(*c);
-	            uncheckedEnqueue(learnt_clause[0], c);
+                if (!learnt_isbac) { // Don't enqueue propagation for BAC clauses.  BM
+	                uncheckedEnqueue(learnt_clause[0], c);
+                } 
                 /*
-                * if (!learnt_isbac) { // Don't enqueue propagation for BAC clauses.  BM
-	            *     uncheckedEnqueue(learnt_clause[0], c);
-                * } 
                 * else {
                 *     assert(value(learnt_clause[0]) == l_Undef);
                 *     newDecisionLevel();
