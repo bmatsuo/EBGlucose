@@ -13,9 +13,9 @@ mypath=.
 #mypath=.
 TMPDIR=$mypath/tmp
 
-TMP=$TMPDIR/glucose_$$ #set this to the location of temporary files
-SE=$mypath/SatELite_release           #set this to the executable of SatELite
-RS=$mypath/glucose_static              #set this to the executable of RSat
+TMP=$TMPDIR/glucose_$$       #set this to the location of temporary files
+SE=$mypath/SatELite_release  #set this to the executable of SatELite
+RS=$mypath/glucose_static    #set this to the executable of RSat
 INPUT=$1;
 shift 
 echo "c"
