@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Based off the glucose.sh script.
+
 if [ "x$1" = "x" ]; then
   echo "USAGE: glucose.sh <input CNF>"
   exit 1
