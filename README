@@ -1,6 +1,5 @@
-For compiling : 
+For compiling: 
    ./build.sh
 
-
-For running 
-glucose.sh BENCHNAME
+For running:
+    ebglucose.sh BENCHNAME
