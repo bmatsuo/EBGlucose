@@ -1,6 +1,6 @@
 #!/bin/bash
 export FM=$PWD/sources/SatElite/ForMani
-rm -rf glucose_static 
+rm -rf ebglucose_static 
 rm -rf SatELite_release
 
 cd sources/SatElite/SatELite

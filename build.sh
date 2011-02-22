@@ -7,5 +7,5 @@ cp SatELite_release ../../..
 
 cd ../../glucose/core
 make rs
-cp glucose_static ../../..
+cp ebglucose_static ../../..
  
