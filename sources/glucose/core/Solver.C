@@ -280,7 +280,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 
     bool out_isempowering = false;  // Flag for finding 1-emp clauses.   BM
     int bac_btlevel = -1;
-    vec<Lit> bac_learnt; // Best possible 1-empowering bi-asserting clause.   BM
     Lit bac_lit1, bac_lit2;
     int bac_nblearntlit = -1;
     out_isbac = false;
@@ -336,25 +335,12 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         if (pathC == 1 && out_isempowering && bac_btlevel == -1) {
             // Like FUIP, the F1BAC is the best BAC (lowest btlevel).
             bac_btlevel = out_btlevel;
-            out_learnt.copyTo(bac_learnt);
             int qi = index;
             while (!seen[var(trail[qi--])]);
             Lit q = trail[qi+1];
-            Lit t = bac_learnt[1];
             bac_lit1 = ~q;
             bac_lit2 = ~p;
             bac_nblearntlit = out_learnt.size() - 1;
-            bac_learnt[0] = ~q;
-            bac_learnt[1] = ~p;
-            bac_learnt.push(t);
-            /*
-            * printf("Found F1BAC clause with btlevel %d: ", bac_btlevel);
-            * for (int baci = 0; baci < bac_learnt.size(); baci++) {
-            *     Lit b = bac_learnt[baci];
-            *     printf("[%d,%s%d,%d]", value(b) == l_True ? 1 : 0, sign(b) ? "" : "-", var(b), level[var(b)]);
-            * }
-            * printf("\n");
-            */
         }
 
     }while (pathC > 0);
@@ -362,12 +348,14 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         out_learnt[0] = ~p;
     }
     else {
-        // Recreate the BAC.
-        //printf("Learnt F1BAC clause with btlevel %d (FUIP %d)\n", bac_btlevel, out_btlevel);
-        //printf("    BA lits = (%s%d, %d) (%s%d, %d)\n",
-        //        sign(bac_lit1) ? "" : "-", var(bac_lit1), level[var(bac_lit1)],
-        //        sign(bac_lit2) ? "" : "-", var(bac_lit2), level[var(bac_lit2)]);
-        //printf("    Length: %d\n", bac_nblearntlit + 2);
+        // The F1BAC if it is good enough to recreate.   BM
+        /*
+        * printf("Learnt F1BAC clause with btlevel %d (FUIP %d)\n", bac_btlevel, out_btlevel);
+        * printf("    BA lits = (%s%d, %d) (%s%d, %d)\n",
+        *         sign(bac_lit1) ? "" : "-", var(bac_lit1), level[var(bac_lit1)],
+        *         sign(bac_lit2) ? "" : "-", var(bac_lit2), level[var(bac_lit2)]);
+        * printf("    Length: %d\n", bac_nblearntlit + 2);
+        */
         int bac_edge = bac_nblearntlit + 1;
         for (int i = bac_edge; i < out_learnt.size(); i++)
             seen[var(out_learnt[i])] = 0;
@@ -380,34 +368,24 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         out_isbac = true;
     }
 
-    // Learn the F1BAC if it is good enough.   BM
-    //if (bac_btlevel >= 0 && bac_btlevel <= out_btlevel - 2) {
-    //    printf("Learnt F1BAC clause with btlevel %d (FUIP %d)\n", bac_btlevel, out_btlevel);
-    //    bac_learnt.copyTo(out_learnt);
-    //    out_btlevel = bac_btlevel;
-    //    out_isbac = true;
-    //}
 
 	
     // Simplify conflict clause:
     //
     int i=0, j=0;
-    int bac_off = out_isbac ? 1 : 0;
-    if (bac_nblearntlit > -1) {
-        out_learnt.copyTo(analyze_toclear);
-    }
-    else if (expensive_ccmin){
+    int start_keep = 1 + (out_isbac ? 1 : 0);
+    if (expensive_ccmin){
         uint32_t abstract_level = 0;
-        for (i = 1; i < out_learnt.size(); i++)
+        for (i = start_keep; i < out_learnt.size(); i++)
 	        abstract_level |= abstractLevel(var(out_learnt[i])); // (maintain an abstraction of levels involved in conflict)
       
         out_learnt.copyTo(analyze_toclear);
-        for (i = j = 1; i < out_learnt.size(); i++)
+        for (i = j = start_keep; i < out_learnt.size(); i++)
 	        if (reason[var(out_learnt[i])] == NULL || !litRedundant(out_learnt[i], abstract_level))
 	            out_learnt[j++] = out_learnt[i];
     }else{
         out_learnt.copyTo(analyze_toclear);
-        for (i = j = 1; i < out_learnt.size(); i++){
+        for (i = j = start_keep; i < out_learnt.size(); i++){
 	        Clause& c = *reason[var(out_learnt[i])];
 	        if(c.size()==2 && value(c[0])==l_False) {
 	            assert(value(c[1])==l_True);
@@ -415,7 +393,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 	            c[0] =  c[1], c[1] = tmp;
 	        }
 	
-	        for (int k = 1; k < c.size(); k++)
+	        for (int k = start_keep; k < c.size(); k++)
 	            if (!seen[var(c[k])] && level[var(c[k])] > 0){
 	                out_learnt[j++] = out_learnt[i];
 	                break;
@@ -435,14 +413,14 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     if (out_learnt.size() == 1)
         out_btlevel = 0;
     else{
-        int max_i = 1 + bac_off;
-        for (int i = 2 + bac_off; i < out_learnt.size(); i++)
+        int max_i = start_keep;
+        for (int i = start_keep + 1; i < out_learnt.size(); i++)
             if (level[var(out_learnt[i])] > level[var(out_learnt[max_i])])
                 max_i = i;
-        Lit p             = out_learnt[max_i];
-        out_learnt[max_i] = out_learnt[1 + bac_off];
-        out_learnt[1 + bac_off]     = p;
-        out_btlevel       = level[var(p)];
+        Lit p                   = out_learnt[max_i];
+        out_learnt[max_i]       = out_learnt[start_keep];
+        out_learnt[start_keep]  = p;
+        out_btlevel             = level[var(p)];
     }
 
 
