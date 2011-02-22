@@ -15,9 +15,9 @@ mypath=.
 #mypath=.
 TMPDIR=$mypath/tmp
 
-TMP=$TMPDIR/ebglucose_$$       #set this to the location of temporary files
-SE=$mypath/SatELite_release  #set this to the executable of SatELite
-RS=$mypath/ebglucose_static    #set this to the executable of RSat
+TMP=$TMPDIR/ebglucose_$$       #set this to the location of temporary files.
+SE=$mypath/SatELite_release    #set this to the executable of SatELite.
+RS=$mypath/ebglucose_static    #set this to the executable of the solver.
 INPUT=$1;
 shift 
 echo "c"
