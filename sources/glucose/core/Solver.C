@@ -366,6 +366,12 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         out_learnt.shrink(out_learnt.size() - bac_edge - 1);
         out_btlevel = bac_btlevel;
         out_isbac = true;
+        /*
+        * for (int i = 0; i < out_learnt.size(); i++) {
+        *     printf("(%s%d,%d)",
+        *         value(sign(out_learnt[i])) == l_True ? "" : "-", var(out_learnt[i]), level[var(out_learnt[i])]);
+        * }
+        */
     }
 
 
@@ -695,17 +701,17 @@ void Solver::reduceDB()
     sort(learnts, reduceDB_lt());
     
     for (i = j = 0; i < learnts.size() / RATIOREMOVECLAUSES; i++){
-	if (learnts[i]->size() > 2 && !locked(*learnts[i]) && learnts[i]->activity()>2){
-	  removeClause(*learnts[i]);
-	}
+        if (learnts[i]->size() > 2 && !locked(*learnts[i]) && learnts[i]->activity()>2){
+            removeClause(*learnts[i]);
+        }
         else
-	  learnts[j++] = learnts[i];
-      }
-      for (; i < learnts.size(); i++){
-	learnts[j++] = learnts[i];
+	        learnts[j++] = learnts[i];
     }
-      learnts.shrink(i - j);
-      nof_learnts   *= learntsize_inc;
+    for (; i < learnts.size(); i++){
+        learnts[j++] = learnts[i];
+    }
+    learnts.shrink(i - j);
+    nof_learnts   *= learntsize_inc;
 }
 
 
@@ -811,21 +817,34 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
             }else{
 	            Clause* c = Clause_new(learnt_clause, true);
 	            learnts.push(c);
+                c->setIsBiAsserting(learnt_isbac); // BM
 	            c->setActivity(nblevels); // LS
 	            if(nblevels<=2) nbDL2++;
 	            if(c->size()==2) nbBin++;
 	            attachClause(*c);
 	            claBumpActivity(*c);
-                if (!learnt_isbac) { // Don't enqueue propagation for BAC clauses.  BM
-	                uncheckedEnqueue(learnt_clause[0], c);
-                } 
                 /*
-                * else {
-                *     assert(value(learnt_clause[0]) == l_Undef);
-                *     newDecisionLevel();
-                *     uncheckedEnqueue(~learnt_clause[0]);
-                * }
+                * printf("Learnt %s (%s) with Size %d, LBD %d, nblevels %d\n",
+                *         c->isBiAsserting() ? "F1BAC" : "FUIP",
+                *         learnt_isbac ? "F1BAC" : "FUIP",
+                *         c->size(), c->activity(), nblevels);
                 */
+                if (learnt_isbac) { // Don't enqueue propagation for BAC clauses.  BM
+                    /*
+                    * for (int i = 0; i < c->size(); i++) {
+                    *     printf("(%s%d,%d)",
+                    *         value(sign((*c)[i])) == l_True ? "" : "-", var((*c)[i]), level[var((*c)[i])]);
+                    * }
+                    * printf("\n");
+                    */
+                    //assert(value(learnt_clause[0]) == l_Undef);
+                    newDecisionLevel();
+                    uncheckedEnqueue(~learnt_clause[0]);
+                } 
+                else {
+	                uncheckedEnqueue(learnt_clause[0], c);
+                }
+                
             }
 	        varDecayActivity();
 	        claDecayActivity();

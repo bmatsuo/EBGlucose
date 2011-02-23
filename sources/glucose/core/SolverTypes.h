@@ -100,7 +100,8 @@ const lbool l_Undef = toLbool( 0);
 
 class Clause {
     uint32_t size_etc;
-    union { int act; uint32_t abst; } extra;
+    union { int act; uint32_t abst;} extra;
+    bool is_bac;
     float oldact;
     Lit     data[0];
 
@@ -116,8 +117,14 @@ public:
     Clause(const V& ps, bool learnt) {
         size_etc = (ps.size() << 3) | (uint32_t)learnt;
         for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
-	oldact = 0.0;
-        if (learnt) extra.act = 0; else calcAbstraction(); }
+        oldact = 0.0;
+        if (learnt) {
+            extra.act = 0;
+            is_bac = false;
+        } else {
+            calcAbstraction();
+        }
+    }
 
     // -- use this function instead:
     template<class V>
@@ -142,6 +149,8 @@ public:
     operator const Lit* (void) const         { return data; }
 	void        setActivity(int i)  {extra.act = i;} // LS
     int&       activity    ()              { return extra.act; }
+	void        setIsBiAsserting (bool learnt_isbac)  {is_bac = learnt_isbac;} // BM
+    bool&        isBiAsserting    ()              { return is_bac; }
     float&       oldActivity    ()              { return oldact; }
 #ifdef LS_STATS_NBBUMP
     unsigned long long& nbBump() {return nbB;}
