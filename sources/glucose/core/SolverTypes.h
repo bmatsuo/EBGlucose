@@ -99,10 +99,10 @@ const lbool l_Undef = toLbool( 0);
 
 
 class Clause {
-    union { int act; uint32_t abst;} extra;
     uint32_t size_etc:30;
     int is_learnt:1;
     int is_bac:1;
+    union { int act; uint32_t abst;} extra;
     float oldact;
     Lit     data[0];
 
