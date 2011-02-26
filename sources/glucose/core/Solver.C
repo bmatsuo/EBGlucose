@@ -386,7 +386,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         }
 
     }while (pathC > 0);
-    if (bac_btlevel == -1 || bac_btlevel > out_btlevel - 2) { // BAC should not be learnt.
+    if (bac_btlevel > out_btlevel - 2 || bac_btlevel == -1) { // BAC should not be learnt.
         out_learnt[0] = ~p;
     }
     else {
@@ -398,14 +398,16 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         *         sign(bac_lit2) ? "" : "-", var(bac_lit2), level[var(bac_lit2)]);
         * printf("    Length: %d\n", bac_nblearntlit + 2);
         */
-        for (int i = bac_edge; i < out_learnt.size(); i++)
-            seen[var(out_learnt[i])] = 0;
-        for (int i = bac_edge; i > 1; i--)
-            out_learnt[i] = out_learnt[i-1];
-        out_learnt.growTo(2);
+        if (out_learnt.size() == 1) 
+            out_learnt.growTo(2);
+        else {
+            for (int i = bac_edge; i < out_learnt.size(); i++) seen[var(out_learnt[i])] = 0;
+            for (int i = bac_edge; i > 1; i--) out_learnt[i] = out_learnt[i-1];
+            out_learnt.shrink(out_learnt.size() - bac_edge - 1);
+        }
+
         out_learnt[0] = bac_lit1;
         out_learnt[1] = bac_lit2;
-        out_learnt.shrink(out_learnt.size() - bac_edge - 1);
         out_btlevel = bac_btlevel;
         out_isbac = true;
         /*
