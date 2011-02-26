@@ -62,7 +62,12 @@ Solver::Solver() :
 
     // Statistics: (formerly in 'SolverStats')
     // 
-    , nbDL2(0),nbBin(0),nbUn(0) , nbReduceDB(0), starts(0), decisions(0), rnd_decisions(0), propagations(0), conflicts(0)
+    , nbDL2(0),nbBin(0),nbUn(0)
+    , nbReduceDB(0), starts(0)
+    , decisions(0), rnd_decisions(0), propagations(0), conflicts(0)
+#ifdef BACSTATCOLLECTION
+    , stat_max_measure(1500), bac_propagations(0), resd_clauses(0), resd_bac(0)
+#endif
   , clauses_literals(0), learnts_literals(0), max_literals(0), tot_literals(0)
 
   , ok               (true)
@@ -78,7 +83,26 @@ Solver::Solver() :
   , random_seed      (91648253)
   , progress_estimate(0)
   , remove_satisfied (true)
-{MYFLAG = 0;}
+{MYFLAG = 0;
+#ifdef BACSTATCOLLECTION
+//bac_prop_lbd_c = vec<uint64_t> ();
+//bac_prop_len_c = vec<uint64_t> ();
+//bac_res_lbd_c = vec<uint64_t> ();
+//bac_res_len_c = vec<uint64_t> ();
+//fuip_prop_lbd_c = vec<uint64_t> ();
+//fuip_prop_len_c = vec<uint64_t> ();
+//fuip_res_lbd_c = vec<uint64_t> ();
+//fuip_res_len_c = vec<uint64_t> ();
+bac_prop_lbd_c.growTo(stat_max_measure, 0);
+bac_prop_len_c.growTo(stat_max_measure, 0);
+bac_res_lbd_c.growTo(stat_max_measure, 0);
+bac_res_len_c.growTo(stat_max_measure, 0);
+fuip_prop_lbd_c.growTo(stat_max_measure, 0);
+fuip_prop_len_c.growTo(stat_max_measure, 0);
+fuip_res_lbd_c.growTo(stat_max_measure, 0);
+fuip_res_len_c.growTo(stat_max_measure, 0);
+#endif
+}
 
 
 Solver::~Solver()
@@ -286,6 +310,26 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
         Clause& c = *confl;
+
+#ifdef BACSTATCOLLECTION
+        if (c.isLearnt()) {
+            bool reason_isbac = c.isBiAsserting();
+            ++resd_clauses;
+            if (reason_isbac) ++resd_bac;
+
+            int reason_lbd = c.activity();
+            if (reason_lbd < stat_max_measure) {
+                if (reason_isbac) bac_res_lbd_c[reason_lbd]++;
+                else fuip_res_lbd_c[reason_lbd]++;
+            }
+
+            int reason_length = c.size();
+            if (reason_length < stat_max_measure) {
+                if (reason_isbac) bac_res_len_c[reason_length]++;
+                else fuip_res_len_c[reason_length]++;
+            }
+        }
+#endif
       
         // The first one has to be SAT
         if( p != lit_Undef && c.size()==2 && value(c[0])==l_False) {
@@ -361,6 +405,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
             seen[var(out_learnt[i])] = 0;
         for (int i = bac_edge; i > 1; i--)
             out_learnt[i] = out_learnt[i-1];
+        out_learnt.growTo(2);
         out_learnt[0] = bac_lit1;
         out_learnt[1] = bac_lit2;
         out_learnt.shrink(out_learnt.size() - bac_edge - 1);
@@ -417,6 +462,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     // Find correct backtrack level:
     //
     if (out_learnt.size() == 1)
+        out_btlevel = 0;
+    else if (out_isbac && out_learnt.size() == 2)  // BM
         out_btlevel = 0;
     else{
         int max_i = start_keep;
@@ -564,12 +611,19 @@ Clause* Solver::propagate()
 {
   Clause* confl     = NULL;
   int     num_props = 0;
+#ifdef BACSTATCOLLECTION
+  int     num_bac_props = 0;
+#endif
   
   while (qhead < trail.size()){
     Lit            p   = trail[qhead++];     // 'p' is enqueued fact to propagate.
     vec<Watched>&  ws  = watches[toInt(p)];
     Watched         *i, *j, *end;
     num_props++;
+#ifdef BACSTATCOLLECTION
+    if (reason[var(p)] != NULL && reason[var(p)]->isLearnt() && reason[var(p)]->isBiAsserting())
+        num_bac_props++;
+#endif
     
     vec<Binaire> & wbin = watchesBin[toInt(p)];
     
@@ -659,6 +713,9 @@ Clause* Solver::propagate()
     }
     propagations += num_props;
     simpDB_props -= num_props;
+#ifdef BACSTATCOLLECTION
+    bac_propagations += num_bac_props;
+#endif
 
     return confl;
 }
@@ -839,7 +896,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
                     */
                     //assert(value(learnt_clause[0]) == l_Undef);
                     newDecisionLevel();
-                    uncheckedEnqueue(~learnt_clause[0]);
+                    uncheckedEnqueue(~learnt_clause[1]);
                 } 
                 else {
 	                uncheckedEnqueue(learnt_clause[0], c);

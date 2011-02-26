@@ -29,6 +29,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "SolverTypes.h"
 #include "BoundedQueue.h"
 
+//#define BACSTATCOLLECTION
+
 //=================================================================================================
 // Solver -- the main class:
 
@@ -92,6 +94,12 @@ public:
     // Statistics: (read-only member variable)
     //
     uint64_t nbDL2,nbBin,nbUn,nbReduceDB,starts, decisions, rnd_decisions, propagations, conflicts;
+#ifdef BACSTATCOLLECTION
+    int stat_max_measure;
+    uint64_t bac_propagations, resd_clauses, resd_bac;
+    vec<uint64_t> bac_prop_lbd_c, bac_prop_len_c, bac_res_lbd_c, bac_res_len_c;
+    vec<uint64_t> fuip_prop_lbd_c, fuip_prop_len_c, fuip_res_lbd_c, fuip_res_len_c;
+#endif
     uint64_t clauses_literals, learnts_literals, max_literals, tot_literals;
 #ifdef LINEARREGRESSION
 	double lin_x, lin_y, sum_x, sum_y, prod_xy, sum_square_x;

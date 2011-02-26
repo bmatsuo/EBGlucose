@@ -9,11 +9,11 @@ fi
 
 
 # to set in evaluation environment
-mypath=.
+mypath=`dirname $0`
 
 # To set in a normal envirnement
 #mypath=.
-TMPDIR=$mypath/tmp
+#TMPDIR=$mypath/tmp
 
 TMP=$TMPDIR/ebglucose_$$       #set this to the location of temporary files.
 SE=$mypath/SatELite_release    #set this to the executable of SatELite.

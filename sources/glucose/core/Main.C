@@ -199,9 +199,40 @@ void printStats(Solver& solver)
     reportf("c conflicts             : %-12lld   (%.0f /sec)\n", solver.conflicts   , solver.conflicts   /cpu_time);
     reportf("c decisions             : %-12lld   (%4.2f %% random) (%.0f /sec)\n", solver.decisions, (float)solver.rnd_decisions*100 / (float)solver.decisions, solver.decisions   /cpu_time);
     reportf("c propagations          : %-12lld   (%.0f /sec)\n", solver.propagations, solver.propagations/cpu_time);
+#ifdef BACSTATCOLLECTION
+    reportf("c propagations w/ F1BAC : %-12lld   (%.0f /sec)\n", solver.bac_propagations, solver.bac_propagations/cpu_time);
+    reportf("c clauses used in res.  : %-12lld   (%.0f /sec)\n", solver.resd_clauses, solver.resd_clauses/cpu_time);
+    reportf("c F1BAC  used in res.   : %-12lld   (%.0f /sec)\n", solver.resd_bac, solver.resd_bac/cpu_time);
+#endif
     reportf("c conflict literals     : %-12lld   (%4.2f %% deleted)\n", solver.tot_literals, (solver.max_literals - solver.tot_literals)*100 / (double)solver.max_literals);
     if (mem_used != 0) reportf("c Memory used           : %.2f MB\n", mem_used / 1048576.0);
     reportf("c CPU time              : %g s\n", cpu_time);
+#ifdef BACSTATCOLLECTION
+    reportf("c FUIP propagation LBD freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", fuip_prop_lbd_c[i]);
+    reportf("\n");
+    reportf("c FUIP propagation length freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", fuip_prop_len_c[i]);
+    reportf("\n");
+    reportf("c BAC propagation LBD freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", bac_prop_lbd_c[i]);
+    reportf("\n");
+    reportf("c BAC propagation length freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", bac_prop_len_c[i]);
+    reportf("\n");
+    reportf("c FUIP resolution LBD freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", fuip_res_lbd_c[i]);
+    reportf("\n");
+    reportf("c FUIP resolution length freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", fuip_res_len_c[i]);
+    reportf("\n");
+    reportf("c BAC resolution LBD freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", bac_res_lbd_c[i]);
+    reportf("\n");
+    reportf("c BAC resolution length freq: ");
+    for (int i = 0; i < solver.stat_max_measure; ++i) reportf("%s%lld", i==0?"":", ", bac_res_len_c[i]);
+    reportf("\n");
+#endif
 }
 
 Solver* solver;

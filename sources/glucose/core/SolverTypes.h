@@ -99,9 +99,10 @@ const lbool l_Undef = toLbool( 0);
 
 
 class Clause {
-    uint32_t size_etc;
     union { int act; uint32_t abst;} extra;
-    bool is_bac;
+    uint32_t size_etc:30;
+    int is_learnt:1;
+    int is_bac:1;
     float oldact;
     Lit     data[0];
 
@@ -118,6 +119,7 @@ public:
         size_etc = (ps.size() << 3) | (uint32_t)learnt;
         for (int i = 0; i < ps.size(); i++) data[i] = ps[i];
         oldact = 0.0;
+		is_learnt = learnt;
         if (learnt) {
             extra.act = 0;
             is_bac = false;
@@ -150,7 +152,8 @@ public:
 	void        setActivity(int i)  {extra.act = i;} // LS
     int&       activity    ()              { return extra.act; }
 	void        setIsBiAsserting (bool learnt_isbac)  {is_bac = learnt_isbac;} // BM
-    bool&        isBiAsserting    ()              { return is_bac; }
+    int        isBiAsserting    ()              { return is_bac; }
+    int        isLearnt         ()              { return is_learnt; }
     float&       oldActivity    ()              { return oldact; }
 #ifdef LS_STATS_NBBUMP
     unsigned long long& nbBump() {return nbB;}
