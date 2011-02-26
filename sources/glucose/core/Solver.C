@@ -379,9 +379,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         if (pathC == 1 && out_isempowering && bac_btlevel == -1) {
             // Like FUIP, the F1BAC is the best BAC (lowest btlevel).
             bac_btlevel = out_btlevel;
-            int qi = index;
-            while (!seen[var(trail[qi--])]);
-            Lit q = trail[qi+1];
+            while (!seen[var(trail[index--])]);
+            Lit q = trail[++index];
             bac_lit1 = ~q;
             bac_lit2 = ~p;
             bac_nblearntlit = out_learnt.size() - 1;
