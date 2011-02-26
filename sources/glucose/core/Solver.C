@@ -305,7 +305,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     bool out_isempowering = false;  // Flag for finding 1-emp clauses.   BM
     int bac_btlevel = -1;
     Lit bac_lit1, bac_lit2;
-    int bac_nblearntlit = -1;
+    int bac_edge = -1;
     out_isbac = false;
     do{
         assert(confl != NULL);          // (otherwise should be UIP)
@@ -380,14 +380,13 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
             // Like FUIP, the F1BAC is the best BAC (lowest btlevel).
             bac_btlevel = out_btlevel;
             while (!seen[var(trail[index--])]);
-            Lit q = trail[++index];
-            bac_lit1 = ~q;
+            bac_lit1 = ~trail[++index];
             bac_lit2 = ~p;
-            bac_nblearntlit = out_learnt.size() - 1;
+            bac_edge = out_learnt.size(); // highest index in the BAC.
         }
 
     }while (pathC > 0);
-    if (bac_btlevel == -1 || bac_btlevel > out_btlevel -2) { // BAC should not be learnt.
+    if (bac_btlevel == -1 || bac_btlevel > out_btlevel - 2) { // BAC should not be learnt.
         out_learnt[0] = ~p;
     }
     else {
@@ -399,7 +398,6 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         *         sign(bac_lit2) ? "" : "-", var(bac_lit2), level[var(bac_lit2)]);
         * printf("    Length: %d\n", bac_nblearntlit + 2);
         */
-        int bac_edge = bac_nblearntlit + 1;
         for (int i = bac_edge; i < out_learnt.size(); i++)
             seen[var(out_learnt[i])] = 0;
         for (int i = bac_edge; i > 1; i--)
