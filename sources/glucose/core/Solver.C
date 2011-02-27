@@ -304,7 +304,9 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 
     bool out_isempowering = false;  // Flag for finding 1-emp clauses.   BM
     int bac_btlevel = -1;
+    bool bac_nopathinc = false;
     Lit bac_lit1, bac_lit2;
+    int bac_lit1_index = -1;
     int bac_edge = -1;
     out_isbac = false;
     do{
@@ -351,6 +353,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
                 seen[var(q)] = 1;
                 if (level[var(q)] >= decisionLevel()){
                     pathC++;
+                    if (bac_nopathinc) bac_nopathinc=false;
 #ifdef UPDATEVARACTIVITY
 		            if((reason[var(q)]!=NULL)  && (reason[var(q)]->learnt())) 
 		                lastDecisionLevel.push(q);
@@ -369,19 +372,27 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         }
 
         // Select next clause to look at:
-        while (!seen[var(trail[index--])]);
-        p     = trail[index+1];
+        if (bac_nopathinc) { // skip retracing the trail if we know we can.
+            p = bac_lit1;
+            index = bac_lit1_index;
+        }
+        else {
+            while (!seen[var(trail[index--])]);
+            p = trail[index+1];
+        }
         confl = reason[var(p)];
         seen[var(p)] = 0;
         pathC--;
 
         // Check for the first BAC.   BM
-        if (pathC == 1 && out_isempowering && bac_btlevel == -1) {
+        if ( bac_btlevel == -1 && pathC == 1 && out_isempowering) {
             // Like FUIP, the F1BAC is the best BAC (lowest btlevel).
             bac_btlevel = out_btlevel;
-            while (!seen[var(trail[index--])]);
-            bac_lit1 = ~trail[++index];
-            bac_lit2 = ~p;
+            bac_lit1_index = index;
+            while (!seen[var(trail[bac_lit1_index--])]);
+            bac_lit1 = trail[bac_lit1_index + 1];
+            bac_lit2 = p;
+            bac_nopathinc = true;
             bac_edge = out_learnt.size(); // highest index in the BAC.
         }
 
@@ -406,8 +417,8 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
             out_learnt.shrink(out_learnt.size() - bac_edge - 1);
         }
 
-        out_learnt[0] = bac_lit1;
-        out_learnt[1] = bac_lit2;
+        out_learnt[0] = ~bac_lit1;
+        out_learnt[1] = ~bac_lit2;
         out_btlevel = bac_btlevel;
         out_isbac = true;
         /*
