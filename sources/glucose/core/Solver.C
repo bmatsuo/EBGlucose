@@ -907,8 +907,10 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
                     //assert(value(learnt_clause[0]) == l_Undef);
                     //newDecisionLevel();
                     //uncheckedEnqueue(learnt_clause[0]);
-                    //varBumpActivity(var(learnt_clause[0]));
-                    //varBumpActivity(var(learnt_clause[1]));
+                    varBumpActivity(var(learnt_clause[0]));
+                    varBumpActivity(var(learnt_clause[0]));
+                    varBumpActivity(var(learnt_clause[1]));
+                    varBumpActivity(var(learnt_clause[1]));
                 } 
                 else {
 	                uncheckedEnqueue(learnt_clause[0], c);
