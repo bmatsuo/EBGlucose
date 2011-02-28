@@ -909,6 +909,8 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
                     //uncheckedEnqueue(learnt_clause[0]);
                     varBumpActivity(var(learnt_clause[0]));
                     varBumpActivity(var(learnt_clause[0]));
+                    varBumpActivity(var(learnt_clause[0]));
+                    varBumpActivity(var(learnt_clause[1]));
                     varBumpActivity(var(learnt_clause[1]));
                     varBumpActivity(var(learnt_clause[1]));
                 } 
