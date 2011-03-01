@@ -22,6 +22,15 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cmath>
 #include "constants.h"
 
+//#define BAC_FURTHERBACK
+//#define GLUCOSE1_1AGG
+
+/*
+ * The following definitions must be used EXCLUSIVELY
+ */
+//#define BAC_DOUBLEBUMP
+//#define BAC_BUMPLIT2
+
 double  nof_learnts;
 //=================================================================================================
 // Constructor/Destructor:
@@ -397,7 +406,11 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
         }
 
     }while (pathC > 0);
+#ifdef BAC_FURTHERBACK
+    if (bac_btlevel > out_btlevel - 3 || bac_btlevel == -1) { // BAC should not be learnt.
+#else
     if (bac_btlevel > out_btlevel - 2 || bac_btlevel == -1) { // BAC should not be learnt.
+#endif
         out_learnt[0] = ~p;
     }
     else {
@@ -742,6 +755,13 @@ Clause* Solver::propagate()
 |________________________________________________________________________________________________@*/
 struct reduceDB_lt { 
   bool operator () (Clause* x, Clause* y) { 
+#ifdef GLUCOSE1_1AGG
+    // First criteria
+    if(x->activity()> y->activity()) return 1;
+    if(x->activity()< y->activity()) return 0;    
+
+    return x->oldActivity() < y->oldActivity();
+#else
     // First criteria 
     if(x->size()> 2 && y->size()==2) return 1;
     
@@ -754,6 +774,7 @@ struct reduceDB_lt {
     
     //    return x->oldActivity() < y->oldActivity();
     return x->size() < y->size();
+#endif
   }};
 
 
@@ -901,18 +922,25 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
                     * for (int i = 0; i < c->size(); i++) {
                     *     printf("(%s%d,%d)",
                     *         value(sign((*c)[i])) == l_True ? "" : "-", var((*c)[i]), level[var((*c)[i])]);
-                    * }
-                    * printf("\n");
+                    * } printf("\n");
                     */
-                    //assert(value(learnt_clause[0]) == l_Undef);
-                    //newDecisionLevel();
-                    //uncheckedEnqueue(learnt_clause[0]);
+#ifdef BAC_BUMPLIT2
+                    varBumpActivity(var(learnt_clause[1]));
+#endif
+#ifdef BAC_BUMP
                     varBumpActivity(var(learnt_clause[0]));
+                    varBumpActivity(var(learnt_clause[1]));
+#endif
+#ifdef BAC_DOUBLEBUMP
                     varBumpActivity(var(learnt_clause[0]));
                     varBumpActivity(var(learnt_clause[0]));
                     varBumpActivity(var(learnt_clause[1]));
                     varBumpActivity(var(learnt_clause[1]));
-                    varBumpActivity(var(learnt_clause[1]));
+#endif
+#ifdef BAC_ASSUMENEGEARLY
+                    newDecisionLevel();
+                    uncheckedEnqueue(~learnt_clause[0]);
+#endif
                 } 
                 else {
 	                uncheckedEnqueue(learnt_clause[0], c);
