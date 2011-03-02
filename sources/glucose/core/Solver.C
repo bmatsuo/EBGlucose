@@ -23,7 +23,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include "constants.h"
 
 //#define BAC_FURTHERBACK
-//#define GLUCOSE1_1AGG
+#define GLUCOSE1_1AGG
+#define BAC_GLUCOSE1_1AGG
 
 /*
  * The following definitions must be used EXCLUSIVELY
@@ -756,11 +757,12 @@ Clause* Solver::propagate()
 struct reduceDB_lt { 
   bool operator () (Clause* x, Clause* y) { 
 #ifdef GLUCOSE1_1AGG
-    // First criteria
-    if(x->activity()> y->activity()) return 1;
-    if(x->activity()< y->activity()) return 0;    
-
-    return x->oldActivity() < y->oldActivity();
+    return x->activity() > y->activity() ? 1
+        : x->activity() < y->activity() ? 0
+#ifdef BACGLUCOSE1_1AGG
+        : (x->isBiAsserting() && !y->isBiAsserting()) ? 1
+#endif
+        : x->oldActivity() < y->oldActivity();  
 #else
     // First criteria 
     if(x->size()> 2 && y->size()==2) return 1;
