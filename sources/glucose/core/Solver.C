@@ -22,15 +22,22 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cmath>
 #include "constants.h"
 
-//#define BAC_FURTHERBACK
+// Agressive deletion as described for Glucose version 1.1
 #define GLUCOSE1_1AGG
-#define BAC_GLUCOSE1_1AGG
 
 /*
- * The following definitions must be used EXCLUSIVELY
+ * Bi-asserting clause variation options.  -BM
  */
-//#define BAC_DOUBLEBUMP
-//#define BAC_BUMPLIT2
+//#define BAC_GLUCOSE1_1AGG
+//#define BAC_FURTHERBACK
+// Bump unlearnt lits after learning bi-asserting clause.
+#define BAC_BUMP 0
+// Bump unlearnt lits twice after learning bi-asserting clause.
+#define BAC_DOUBLEBUMP 0
+// Bump the later-propagated literal after a learning bi-asserting clause.
+#define BAC_BUMPLIT2 0
+// Assume the negation of the first-propagated bi-asserting literal (bad idea).
+#define BAC_BAC_ASSUMENEGEARLY 0
 
 double  nof_learnts;
 //=================================================================================================
@@ -408,6 +415,7 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 
     }while (pathC > 0);
 #ifdef BAC_FURTHERBACK
+    // This seemed to lower performance in all scenarios.
     if (bac_btlevel > out_btlevel - 3 || bac_btlevel == -1) { // BAC should not be learnt.
 #else
     if (bac_btlevel > out_btlevel - 2 || bac_btlevel == -1) { // BAC should not be learnt.
@@ -759,23 +767,23 @@ struct reduceDB_lt {
 #ifdef GLUCOSE1_1AGG
     return x->activity() > y->activity() ? 1
         : x->activity() < y->activity() ? 0
-#ifdef BACGLUCOSE1_1AGG
+#ifdef BAC_GLUCOSE1_1AGG
+        // This seems to hurt performance in all scenarios.
         : (x->isBiAsserting() && !y->isBiAsserting()) ? 1
-#endif
+#endif // end BAC_GLUCOSE1_1AGG
         : x->oldActivity() < y->oldActivity();  
 #else
-    // First criteria 
-    if(x->size()> 2 && y->size()==2) return 1;
+    return 
+        // First criteria 
+        (x->size()> 2 && y->size()==2) ? 1
+        : (y->size()>2 && x->size()==2) ? 0
+        : (x->size()==2 && y->size()==2) ? 0
     
-    if(y->size()>2 && x->size()==2) return 0;
-    if(x->size()==2 && y->size()==2) return 0;
-    
-    // Second one
-    if(x->activity()> y->activity()) return 1;
-    if(x->activity()< y->activity()) return 0;    
-    
-    //    return x->oldActivity() < y->oldActivity();
-    return x->size() < y->size();
+        // Second one
+        : (x->activity()> y->activity()) ? 1
+        : (x->activity()< y->activity()) ? 0;   
+        //: x->oldActivity() < y->oldActivity();
+        : x->size() < y->size();
 #endif
   }};
 
@@ -926,20 +934,22 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
                     *         value(sign((*c)[i])) == l_True ? "" : "-", var((*c)[i]), level[var((*c)[i])]);
                     * } printf("\n");
                     */
-#ifdef BAC_BUMPLIT2
+#if(BAC_BUMP || BAC_DOUBLEBUMP)
+                    varBumpActivity(var(learnt_clause[0]));
+#endif
+#if(BAC_DOUBLEBUMP)
+                    varBumpActivity(var(learnt_clause[0]));
+#endif
+#if(BAC_BUMP || BAC_DOUBLEBUMP)
                     varBumpActivity(var(learnt_clause[1]));
 #endif
-#ifdef BAC_BUMP
-                    varBumpActivity(var(learnt_clause[0]));
+#if(BAC_DOUBLEBUMP)
                     varBumpActivity(var(learnt_clause[1]));
 #endif
-#ifdef BAC_DOUBLEBUMP
-                    varBumpActivity(var(learnt_clause[0]));
-                    varBumpActivity(var(learnt_clause[0]));
-                    varBumpActivity(var(learnt_clause[1]));
+#if(BAC_BUMPLIT2)
                     varBumpActivity(var(learnt_clause[1]));
 #endif
-#ifdef BAC_ASSUMENEGEARLY
+#if(BAC_ASSUMENEGEARLY)
                     newDecisionLevel();
                     uncheckedEnqueue(~learnt_clause[0]);
 #endif

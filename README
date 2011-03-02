@@ -2,4 +2,4 @@ For compiling:
    ./build.sh
 
 For running:
-    ebglucose.sh BENCHNAME
+    DIR/ebglucose.sh BENCHNAME

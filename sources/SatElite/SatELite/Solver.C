@@ -838,7 +838,7 @@ void Solver::extendModel(void)
         fread((Lit*)io_tmp, 4, size, elim_out);
 
         S.addClause(io_tmp);
-        /**/if (!S.ok) reportf("PANIC! False clause read back: "), dump(S, io_tmp);
+        /**/if (!S.ok) reportf("PANIC! False clause read back: "), dump(S, io_tmp),exit(11);
         assert(S.ok);
     }
     fflush(elim_out);
@@ -887,7 +887,8 @@ void Solver::extendModel(void)
         }
         for (; c > 0; c--){
             assert(S.watches_setup);
-            S.addClause(tmps[c-1]); /*DEBUG*/if (!S.ok) reportf("PANIC! False clause read back: "), dump(S, io_tmp); assert(S.ok);
+            S.addClause(tmps[c-1]); /*DEBUG*/if (!S.ok) reportf("PANIC! False clause read back: "), dump(S, io_tmp),exit(11);
+            assert(S.ok);
             check(S.propagate() == Clause_NULL);
         }
     }

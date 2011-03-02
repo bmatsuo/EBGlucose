@@ -519,7 +519,7 @@ int main(int argc, char** argv)
             io_tmp.growTo(size);
             fread((Lit*)io_tmp, 4, size, in);
 
-            S.addClause(io_tmp); /*DEBUG*/if (!S.ok) reportf("PANIC! False clause read back: "), dump(S, io_tmp);
+            S.addClause(io_tmp); /*DEBUG*/if (!S.ok) reportf("PANIC! False clause read back: "), dump(S, io_tmp), exit(11);
             assert(S.ok);
         }
         fclose(in);

@@ -323,7 +323,8 @@ int main(int argc, char** argv)
     argc = j;
 
 
-    reportf("\nc This is eb-glucose 0.5\nc   -- based on glucose 1.0 (Many thanks to the GLUCOSE, RSAT, and MiniSAT teams)\n\n"); 
+    reportf("\nc This is EBGlucose 1.0 -- based on Glucose version 1.0\n"); 
+    reportf("c     Many thanks to the Glucose, RSAT, and MiniSAT teams.\n\n");
 #if defined(__linux__)
     fpu_control_t oldcw, newcw;
     _FPU_GETCW(oldcw); newcw = (oldcw & ~_FPU_EXTENDED) | _FPU_DOUBLE; _FPU_SETCW(newcw);
