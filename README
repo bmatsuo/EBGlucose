@@ -4,5 +4,5 @@ For compiling:
 For running:
     DIR/ebglucose.sh BENCHNAME
 
-When running the TMPDIR envirionment variable must be set to an existing
+When running, the TMPDIR envirionment variable must be set to an existing
 directory to which you have write permission.

@@ -28,6 +28,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 /*
  * Bi-asserting clause variation options.  -BM
  */
+//#define BAC_ONLY_MERGE_ON_DLVL
 //#define BAC_GLUCOSE1_1AGG
 //#define BAC_FURTHERBACK
 // Bump unlearnt lits after learning bi-asserting clause.
@@ -37,7 +38,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 // Bump the later-propagated literal after a learning bi-asserting clause.
 #define BAC_BUMPLIT2 0
 // Assume the negation of the first-propagated bi-asserting literal (bad idea).
-#define BAC_BAC_ASSUMENEGEARLY 0
+#define BAC_ASSUMENEGEARLY 0
+#define BAC_ASSUME_EMP 0
 
 double  nof_learnts;
 //=================================================================================================
@@ -309,7 +311,7 @@ Lit Solver::pickBranchLit(int polarity_mode, double random_var_freq)
 |  Effect:
 |    Will undo part of the trail, upto but not beyond the assumption of the current decision level.
 |________________________________________________________________________________________________@*/
-void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &nbl,int &mer, bool &out_isbac)
+void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &nbl,int &mer, bool &out_isbac, Lit& bac_emp)
 {
     int pathC = 0;
     Lit p     = lit_Undef;
@@ -320,6 +322,10 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
     out_btlevel = 0;
 
     bool out_isempowering = false;  // Flag for finding 1-emp clauses.   BM
+#ifdef BAC_ONLY_MERGE_ON_DLVL
+    bool p_isempowering = false;
+#endif
+    bac_emp = lit_Undef;
     int bac_btlevel = -1;
     bool bac_nopathinc = false;
     Lit bac_lit1, bac_lit2;
@@ -367,7 +373,11 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
 	      
                 varBumpActivity(var(q));
 
+#ifdef BAC_ONLY_MERGE_ON_DLVL
+                seen[var(q)] = p_isempowering ? 2 : 1;
+#else
                 seen[var(q)] = 1;
+#endif
                 if (level[var(q)] >= decisionLevel()){
                     pathC++;
                     if (bac_nopathinc) bac_nopathinc=false;
@@ -382,10 +392,16 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
                         out_btlevel = level[var(q)];
                 }
             }
-            else if (seen[var(q)] == 1) { // Check for a merge resolution.   BM
+#ifdef BAC_ONLY_MERGE_ON_DLVL
+            else if (seen[var(q)] && level[var(q)] >= decisionLevel()) { // Check for a merge on the highest level.   -BM
+                seen[var(q)] = 2;
                 out_isempowering = true;
-                // printf("Found empowering clause.\n");
             }
+#else
+            else if (seen[var(q)]) { // Check for a merge on the highest level.   -BM
+                out_isempowering = true;
+            }
+#endif
         }
 
         // Select next clause to look at:
@@ -397,6 +413,9 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
             while (!seen[var(trail[index--])]);
             p = trail[index+1];
         }
+#ifdef BAC_ONLY_MERGE_ON_DLVL
+        p_isempowering = (seen[var(trail[index+1])] == 2);
+#endif
         confl = reason[var(p)];
         seen[var(p)] = 0;
         pathC--;
@@ -407,8 +426,13 @@ void Solver::analyze(Clause* confl, vec<Lit>& out_learnt, int& out_btlevel,int &
             bac_btlevel = out_btlevel;
             bac_lit1_index = index;
             while (!seen[var(trail[bac_lit1_index--])]);
-            bac_lit1 = trail[bac_lit1_index + 1];
-            bac_lit2 = p;
+                bac_lit1 = trail[bac_lit1_index + 1];
+                bac_lit2 = p;
+#ifdef BAC_ONLY_MERGE_ON_DLVL
+                bac_emp = (seen[var(bac_lit1)] == 2) ? bac_lit1 : bac_lit2;
+#else
+                bac_emp = bac_lit1;
+#endif
             bac_nopathinc = true;
             bac_edge = out_learnt.size(); // highest index in the BAC.
         }
@@ -781,7 +805,7 @@ struct reduceDB_lt {
     
         // Second one
         : (x->activity()> y->activity()) ? 1
-        : (x->activity()< y->activity()) ? 0;   
+        : (x->activity()< y->activity()) ? 0
         //: x->oldActivity() < y->oldActivity();
         : x->size() < y->size();
 #endif
@@ -884,6 +908,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
     int         conflictsC = 0;
     vec<Lit>    learnt_clause;
     bool        learnt_isbac;
+    Lit         bac_emp_lit;
     int nblevels=0,nbCC=0,merged=0;
     starts++;
     bool first = true;
@@ -899,7 +924,7 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
             first = false;
 
             learnt_clause.clear();
-            analyze(confl, learnt_clause, backtrack_level,nblevels,merged,learnt_isbac);
+            analyze(confl, learnt_clause, backtrack_level,nblevels,merged,learnt_isbac, bac_emp_lit);
 
 
 	        conf4Stats++;
@@ -952,6 +977,10 @@ lbool Solver::search(int nof_conflicts, int nof_learnts)
 #if(BAC_ASSUMENEGEARLY)
                     newDecisionLevel();
                     uncheckedEnqueue(~learnt_clause[0]);
+#endif
+#if(BAC_ASSUME_EMP)
+                    newDecisionLevel();
+                    uncheckedEnqueue(bac_emp_lit);
 #endif
                 } 
                 else {
