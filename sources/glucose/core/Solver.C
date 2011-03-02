@@ -22,7 +22,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cmath>
 #include "constants.h"
 
-// Agressive deletion as described for Glucose version 1.1
+// Agressive deletion as described for Glucose version 1.1  -BM
 #define GLUCOSE1_1AGG
 
 /*
